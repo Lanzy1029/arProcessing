@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-    <meta name="theme-color" content="#07070b" />
-    <meta name="description" content="在 iPhone Safari 中体验完全本地运行的 p5.js 粒子面具。" />
-    <meta property="og:title" content="Particle Veil · 粒子面具 AR" />
-    <meta property="og:description" content="打开摄像头，让流动粒子跟随你的表情。无需安装，画面不会上传。" />
+    <meta name="theme-color" content="#f2f2f7" />
+    <meta name="description" content="在 iPhone Safari 中体验完全本地运行的 Emoji 表情 AR。" />
+    <meta property="og:title" content="Emoji Face AR · 表情派对" />
+    <meta property="og:description" content="眨眼发射爱心，张嘴喷出有趣 Emoji。无需安装，画面不会上传。" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://lanzy1029.github.io/arProcessing/" />
     <meta property="og:image" content="https://lanzy1029.github.io/arProcessing/og.png" />
@@ -14,54 +14,88 @@
     <meta name="twitter:image" content="https://lanzy1029.github.io/arProcessing/og.png" />
     <link rel="canonical" href="https://lanzy1029.github.io/arProcessing/" />
     <link rel="icon" href="data:," />
-    <title>Particle Veil · 粒子面具 AR</title>
+    <title>Emoji Face AR · 表情派对</title>
   </head>
-  <body>
-    <main id="app" aria-label="粒子面具 AR 体验">
+  <body class="app-loading">
+    <main id="app" aria-label="Emoji 表情 AR 体验">
       <video id="camera" autoplay muted playsinline aria-hidden="true"></video>
       <div class="ambient" aria-hidden="true"></div>
       <div id="canvas-host" aria-hidden="true"></div>
 
-      <header class="brand" aria-label="Particle Veil">
-        <span class="brand-mark"></span>
-        <span>PARTICLE VEIL</span>
-        <span class="brand-index">AR / 001</span>
+      <header class="top-bar">
+        <div class="app-identity">
+          <span class="app-icon" aria-hidden="true">😊</span>
+          <span>
+            <strong>表情派对</strong>
+            <small>Emoji Face AR · v2</small>
+          </span>
+        </div>
+        <div class="privacy-badge" aria-label="摄像头画面仅在本机处理">
+          <span aria-hidden="true">🔒</span>
+          仅在本机
+        </div>
       </header>
 
-      <section id="landing" class="landing">
-        <p class="eyebrow">P5.JS × ON-DEVICE VISION</p>
-        <h1 id="headline">让粒子<br />贴上你的脸</h1>
-        <p id="description" class="description">
-          张嘴唤醒粒子喷发，眨眼触发光脉冲。<br />所有识别只发生在你的手机里。
-        </p>
-        <button id="start-button" class="start-button" type="button" disabled>
-          <span id="button-label">正在准备…</span>
-          <span class="button-arrow" aria-hidden="true">↗</span>
-        </button>
-        <div class="privacy-note">
-          <span class="privacy-dot" aria-hidden="true"></span>
-          不录制 · 不上传 · 不需要登录
+      <section id="startup-overlay" class="startup-overlay" aria-live="polite">
+        <div class="startup-card">
+          <div id="loading-spinner" class="loading-spinner" aria-hidden="true"></div>
+          <h1 id="startup-title">正在准备相机</h1>
+          <p id="startup-description">首次使用时，请在 Safari 中允许摄像头。</p>
+          <button id="retry-button" class="retry-button" type="button" hidden>再试一次</button>
         </div>
       </section>
 
       <div id="status-pill" class="status-pill" role="status" aria-live="polite">
         <span class="status-signal" aria-hidden="true"></span>
-        <span id="status-text">正在加载本地人脸模型</span>
+        <span id="status-text">正在准备本地识别</span>
       </div>
 
       <div id="face-guide" class="face-guide" aria-hidden="true">
         <div class="guide-oval"></div>
-        <p>将脸移入轮廓内</p>
+        <p>把脸放进画面</p>
       </div>
 
+      <section class="effect-sheet" aria-label="Emoji 特效选择">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-title">
+          <div>
+            <small>试试看</small>
+            <h2>用表情放烟花</h2>
+          </div>
+          <span class="live-badge">实时</span>
+        </div>
+
+        <div class="gesture-row">
+          <div class="gesture-copy">
+            <span class="gesture-face" aria-hidden="true">😉</span>
+            <span><strong>眨眨眼</strong><small id="blink-caption">发射爱心</small></span>
+          </div>
+          <div class="effect-options" role="group" aria-label="选择眨眼特效">
+            <button class="effect-option" type="button" data-effect-kind="blink" data-effect-preset="hearts" aria-pressed="true"><span>💗</span><small>爱心</small></button>
+            <button class="effect-option" type="button" data-effect-kind="blink" data-effect-preset="sparkles" aria-pressed="false"><span>✨</span><small>闪耀</small></button>
+            <button class="effect-option" type="button" data-effect-kind="blink" data-effect-preset="party" aria-pressed="false"><span>🎉</span><small>派对</small></button>
+          </div>
+        </div>
+
+        <div class="gesture-row">
+          <div class="gesture-copy">
+            <span class="gesture-face" aria-hidden="true">😮</span>
+            <span><strong>张大嘴巴</strong><small id="mouth-caption">喷出便便</small></span>
+          </div>
+          <div class="effect-options" role="group" aria-label="选择张嘴特效">
+            <button class="effect-option" type="button" data-effect-kind="mouth" data-effect-preset="poop" aria-pressed="true"><span>💩</span><small>搞怪</small></button>
+            <button class="effect-option" type="button" data-effect-kind="mouth" data-effect-preset="rainbow" aria-pressed="false"><span>🌈</span><small>彩虹</small></button>
+            <button class="effect-option" type="button" data-effect-kind="mouth" data-effect-preset="fire" aria-pressed="false"><span>🔥</span><small>火焰</small></button>
+          </div>
+        </div>
+
+        <p class="privacy-note">不录制 · 不上传 · 不需要登录</p>
+      </section>
+
       <aside id="debug-panel" class="debug-panel" aria-label="诊断数据" hidden>
-        <div class="debug-title">LOCAL VISION / DEBUG</div>
+        <div class="debug-title">本地识别诊断</div>
         <pre id="debug-output">等待运行…</pre>
       </aside>
-
-      <footer class="gesture-hint" aria-hidden="true">
-        <span>眨眼</span><span>张嘴</span><span>转头</span>
-      </footer>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>
