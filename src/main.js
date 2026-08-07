@@ -7,6 +7,11 @@ import {
   deriveFacePose,
   mapLandmarksToViewport,
 } from "./core/geometry.js";
+import {
+  DEFAULT_EMOJI_SELECTION,
+  EMOJI_PRESETS,
+  normalizeEmojiSelection,
+} from "./core/emoji-presets.js";
 import { ParticleMask } from "./particle-mask.js";
 import { SyntheticFace } from "./synthetic-face.js";
 
@@ -14,19 +19,23 @@ const params = new URLSearchParams(window.location.search);
 const debugEnabled = params.get("debug") === "1";
 const demoMode = params.get("demo");
 const demoEnabled = demoMode === "1" || demoMode === "empty";
+const STORAGE_KEY = "emoji-face-ar-selection-v2";
 
 const elements = {
   video: document.querySelector("#camera"),
-  landing: document.querySelector("#landing"),
-  headline: document.querySelector("#headline"),
-  description: document.querySelector("#description"),
-  button: document.querySelector("#start-button"),
-  buttonLabel: document.querySelector("#button-label"),
+  startupOverlay: document.querySelector("#startup-overlay"),
+  startupTitle: document.querySelector("#startup-title"),
+  startupDescription: document.querySelector("#startup-description"),
+  loadingSpinner: document.querySelector("#loading-spinner"),
+  retryButton: document.querySelector("#retry-button"),
   statusPill: document.querySelector("#status-pill"),
   statusText: document.querySelector("#status-text"),
   faceGuide: document.querySelector("#face-guide"),
   debugPanel: document.querySelector("#debug-panel"),
   debugOutput: document.querySelector("#debug-output"),
+  blinkCaption: document.querySelector("#blink-caption"),
+  mouthCaption: document.querySelector("#mouth-caption"),
+  effectButtons: [...document.querySelectorAll("[data-effect-kind]")],
 };
 
 if (debugEnabled) {
@@ -35,14 +44,23 @@ if (debugEnabled) {
 }
 if (demoEnabled) document.body.classList.add("demo-mode");
 
-class ParticleVeilApp {
+function readSavedSelection() {
+  try {
+    return normalizeEmojiSelection(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"));
+  } catch {
+    return { ...DEFAULT_EMOJI_SELECTION };
+  }
+}
+
+class EmojiFaceApp {
   constructor() {
     this.tracker = demoEnabled ? null : new FaceTracker();
     this.syntheticFace = demoEnabled ? new SyntheticFace() : null;
     this.stream = null;
     this.running = false;
+    this.booting = false;
     this.paused = false;
-    this.ready = false;
+    this.modelPromise = null;
     this.startTimestamp = 0;
     this.lastFaceTimestamp = 0;
     this.lastDebugUpdate = 0;
@@ -50,57 +68,99 @@ class ParticleVeilApp {
     this.latestScreenFrame = null;
     this.mask = null;
     this.p = null;
+    this.selection = readSavedSelection();
+    this.bindEffectControls();
+    this.renderEffectControls();
   }
 
-  async prepare() {
-    this.showStatus(demoEnabled ? "演示数据准备中" : "正在加载本地人脸模型");
-    this.setButton("正在准备…", true);
-
-    try {
-      if (!demoEnabled) await this.tracker.init();
-      this.ready = true;
-      this.showStatus(demoEnabled ? "演示模式已准备" : "本地模型已准备好");
-      this.setButton(demoEnabled ? "启动粒子演示" : "开始 AR", false);
-      window.setTimeout(() => this.hideStatus(), 1300);
-    } catch (error) {
-      console.error("Face model initialization failed.", error);
-      this.showError(
-        "模型没有加载成功",
-        "请检查网络后重试。模型只会下载到当前设备，不会上传摄像头画面。",
-        "重新加载",
-      );
-    }
-  }
-
-  async start() {
-    if (!this.ready) {
-      this.resetLanding();
-      await this.prepare();
-      if (!this.ready) return;
-    }
-
-    this.setButton("正在打开摄像头…", true);
-    this.showStatus(demoEnabled ? "正在启动演示" : "正在请求摄像头权限");
-
-    try {
-      if (!demoEnabled) {
-        if (this.stream) stopCamera(elements.video);
-        this.stream = await startFrontCamera(elements.video);
-        this.stream.getVideoTracks().forEach((track) => {
-          track.addEventListener("ended", () => this.handleCameraEnded(), { once: true });
+  bindEffectControls() {
+    for (const button of elements.effectButtons) {
+      button.addEventListener("click", () => {
+        const { effectKind, effectPreset } = button.dataset;
+        this.selection = normalizeEmojiSelection({
+          ...this.selection,
+          [effectKind]: effectPreset,
         });
-      }
+        this.mask?.setEmojiSelection(this.selection);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(this.selection));
+        } catch {
+          // The experience still works when Safari disables storage.
+        }
+        this.renderEffectControls();
+      });
+    }
+  }
+
+  renderEffectControls() {
+    for (const button of elements.effectButtons) {
+      const selected = this.selection[button.dataset.effectKind] === button.dataset.effectPreset;
+      button.setAttribute("aria-pressed", String(selected));
+    }
+    elements.blinkCaption.textContent = EMOJI_PRESETS.blink[this.selection.blink].caption;
+    elements.mouthCaption.textContent = EMOJI_PRESETS.mouth[this.selection.mouth].caption;
+  }
+
+  ensureModel() {
+    if (demoEnabled) return Promise.resolve();
+    if (!this.modelPromise) {
+      this.modelPromise = this.tracker.init().catch((error) => {
+        this.modelPromise = null;
+        throw error;
+      });
+    }
+    return this.modelPromise;
+  }
+
+  async openCamera() {
+    if (this.stream) stopCamera(elements.video);
+    const stream = await startFrontCamera(elements.video);
+    this.stream = stream;
+    document.body.classList.add("camera-preview");
+    stream.getVideoTracks().forEach((track) => {
+      track.addEventListener("ended", () => this.handleCameraEnded(), { once: true });
+    });
+    return stream;
+  }
+
+  async boot() {
+    if (this.booting) return;
+    this.booting = true;
+    this.running = false;
+    document.body.classList.add("app-loading");
+    document.body.classList.remove("app-error", "camera-live");
+    elements.faceGuide.classList.remove("is-visible");
+    this.showStartup(
+      demoEnabled ? "正在准备演示" : "正在准备相机",
+      demoEnabled ? "使用模拟表情，不会请求摄像头。" : "首次使用时，请在 Safari 中允许摄像头。",
+      false,
+    );
+    this.showStatus(demoEnabled ? "正在生成模拟表情" : "模型与前摄正在准备");
+
+    try {
+      const jobs = [this.ensureModel()];
+      if (!demoEnabled) jobs.push(this.openCamera());
+      await Promise.all(jobs);
 
       this.running = true;
       this.paused = false;
       this.startTimestamp = performance.now();
       this.lastFaceTimestamp = 0;
       document.body.classList.add("camera-live");
-      elements.landing.classList.remove("is-error");
-      this.showStatus(demoEnabled ? "模拟人脸已锁定" : "正在寻找人脸");
+      document.body.classList.remove("app-loading", "app-error", "camera-preview");
+      this.hideStartup();
+      this.showStatus(demoEnabled ? "模拟表情已开启" : "正在寻找人脸");
     } catch (error) {
-      console.warn("Camera start failed.", error);
-      this.showError("无法打开摄像头", cameraErrorMessage(error), "重试");
+      console.warn("AR startup failed.", error);
+      const isModelError = !demoEnabled && !this.modelPromise;
+      this.showError(
+        isModelError ? "模型没有加载成功" : "需要开启摄像头",
+        isModelError
+          ? "请检查网络后再试。模型只会下载到当前设备。"
+          : cameraErrorMessage(error),
+      );
+    } finally {
+      this.booting = false;
     }
   }
 
@@ -108,7 +168,7 @@ class ParticleVeilApp {
     if (!this.running) return;
     this.running = false;
     document.body.classList.remove("camera-live");
-    this.showError("摄像头已停止", "返回此页面后，轻点下方按钮重新启动。", "重新启动");
+    this.showError("摄像头已停止", "返回页面后，轻点“再试一次”重新启动。");
   }
 
   updateFrame(timestampMs) {
@@ -141,11 +201,11 @@ class ParticleVeilApp {
     if (hasFace) {
       this.lastFaceTimestamp = timestampMs;
       elements.faceGuide.classList.remove("is-visible");
-      if (timestampMs - this.startTimestamp < 2200) this.showStatus("粒子已锁定 · 本地运行");
+      if (timestampMs - this.startTimestamp < 2600) this.showStatus("人脸已锁定 · 本地运行");
       else this.hideStatus();
     } else if (timestampMs - this.startTimestamp > 900 && timestampMs - this.lastFaceTimestamp > 700) {
       elements.faceGuide.classList.add("is-visible");
-      this.showStatus("未检测到人脸");
+      this.showStatus("没有看到人脸");
     }
   }
 
@@ -160,7 +220,7 @@ class ParticleVeilApp {
       `MODE       ${delegate}`,
       `FPS        ${this.p.frameRate().toFixed(1)}`,
       `INFERENCE  ${inference.toFixed(1)} ms`,
-      `PARTICLES  ${this.mask?.particles.length ?? 0}`,
+      `EMOJI      ${this.mask?.particles.length ?? 0}`,
       `FACE       ${pose ? "LOCKED" : "SEARCHING"}`,
       `JAW        ${(expressions?.jawOpen ?? 0).toFixed(2)}`,
       `BLINK L/R  ${(expressions?.blinkLeft ?? 0).toFixed(2)} / ${(expressions?.blinkRight ?? 0).toFixed(2)}`,
@@ -176,25 +236,26 @@ class ParticleVeilApp {
     elements.statusPill.classList.add("is-hidden");
   }
 
-  setButton(label, disabled) {
-    elements.buttonLabel.textContent = label;
-    elements.button.disabled = disabled;
+  showStartup(title, description, canRetry) {
+    elements.startupTitle.textContent = title;
+    elements.startupDescription.textContent = description;
+    elements.retryButton.hidden = !canRetry;
+    elements.loadingSpinner.hidden = canRetry;
+    elements.startupOverlay.classList.remove("is-hidden");
   }
 
-  resetLanding() {
-    elements.landing.classList.remove("is-error");
-    elements.headline.innerHTML = "让粒子<br />贴上你的脸";
-    elements.description.innerHTML = "张嘴唤醒粒子喷发，眨眼触发光脉冲。<br />所有识别只发生在你的手机里。";
+  hideStartup() {
+    elements.startupOverlay.classList.add("is-hidden");
   }
 
-  showError(title, message, buttonLabel) {
+  showError(title, message) {
     this.running = false;
-    document.body.classList.remove("camera-live");
+    stopCamera(elements.video);
+    this.stream = null;
+    document.body.classList.remove("app-loading", "camera-live", "camera-preview");
+    document.body.classList.add("app-error");
     elements.faceGuide.classList.remove("is-visible");
-    elements.landing.classList.add("is-error");
-    elements.headline.textContent = title;
-    elements.description.textContent = message;
-    this.setButton(buttonLabel, false);
+    this.showStartup(title, message, true);
     this.showStatus("需要你的操作");
   }
 
@@ -205,9 +266,8 @@ class ParticleVeilApp {
   }
 }
 
-const app = new ParticleVeilApp();
-
-elements.button.addEventListener("click", () => app.start());
+const app = new EmojiFaceApp();
+elements.retryButton.addEventListener("click", () => app.boot());
 
 new p5((p) => {
   p.setup = () => {
@@ -219,7 +279,8 @@ new p5((p) => {
     p.randomSeed(29071999);
     p.frameRate(60);
     app.p = p;
-    app.mask = new ParticleMask(p);
+    app.mask = new ParticleMask(p, app.selection);
+    queueMicrotask(() => app.boot());
   };
 
   p.draw = () => {
@@ -253,5 +314,3 @@ document.addEventListener("visibilitychange", async () => {
 window.addEventListener("pagehide", (event) => {
   if (!event.persisted) app.destroy();
 });
-
-app.prepare();
