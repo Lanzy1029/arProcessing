@@ -19,7 +19,7 @@ for (const relativePath of requiredFiles) {
 }
 
 const html = await readFile(path.join(root, "dist/index.html"), "utf8");
-if (!html.includes("Particle Veil")) throw new Error("Production page metadata is missing.");
+if (!html.includes("Emoji Face AR")) throw new Error("Production page metadata is missing.");
 if (!html.includes("./assets/")) throw new Error("Build does not use GitHub Pages-safe relative assets.");
 
 console.log("Build verification passed: app, model, and local WASM assets are present.");
