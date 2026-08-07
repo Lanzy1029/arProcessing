@@ -11,13 +11,10 @@ import {
   normalizeEmojiSelection,
 } from "./core/emoji-presets.js";
 
-const AMBIENT_EMOJIS = Object.freeze(["✨", "🫧", "⭐"]);
-
 export class ParticleMask {
   constructor(p, selection = DEFAULT_EMOJI_SELECTION) {
     this.p = p;
     this.particles = [];
-    this.emissionCarry = 0;
     this.mouthCarry = 0;
     this.facePresence = 0;
     this.selection = normalizeEmojiSelection(selection);
@@ -38,7 +35,6 @@ export class ParticleMask {
     this.facePresence += ((faceFrame ? 1 : 0) - this.facePresence) * 0.12;
 
     if (faceFrame) {
-      this.emitContinuous(faceFrame, dt);
       this.emitExpressionParticles(faceFrame, dt);
     }
 
@@ -60,20 +56,6 @@ export class ParticleMask {
 
     if (this.particles.length > this.maxParticles) {
       this.particles.splice(0, this.particles.length - this.maxParticles);
-    }
-  }
-
-  emitContinuous(faceFrame, dt) {
-    const baseRate = this.reducedMotion ? 7 : 15;
-    this.emissionCarry += (dt / 1000) * baseRate;
-    const pose = deriveFacePose(faceFrame.landmarks);
-    if (!pose) return;
-
-    while (this.emissionCarry >= 1) {
-      this.emissionCarry -= 1;
-      const landmarkIndex = this.pick(MASK_EMITTERS);
-      const point = faceFrame.landmarks[landmarkIndex];
-      if (point) this.spawn(point, pose.center, 0.42, "ambient", this.pick(AMBIENT_EMOJIS));
     }
   }
 
@@ -115,8 +97,7 @@ export class ParticleMask {
     const outwardAngle = Math.atan2(point.y - center.y, point.x - center.x);
     const angle = outwardAngle + this.p.random(-0.72, 0.72);
     const speed = this.p.random(0.34, 1.08) * strength;
-    const expressive = kind !== "ambient";
-    const maxLife = this.p.random(expressive ? 720 : 900, expressive ? 1450 : 1750)
+    const maxLife = this.p.random(720, 1450)
       / Math.max(0.85, strength * 0.7);
 
     this.particles.push({
@@ -127,12 +108,11 @@ export class ParticleMask {
       gravity: kind === "mouth" ? 0.004 : -0.0015,
       life: maxLife,
       maxLife,
-      size: this.p.random(expressive ? 22 : 12, expressive ? 38 : 22),
+      size: this.p.random(22, 38),
       emoji,
       rotation: this.p.random(-0.3, 0.3),
       spin: this.p.random(-0.035, 0.035),
       seed: this.p.random(1000),
-      expressive,
     });
   }
 
@@ -153,8 +133,8 @@ export class ParticleMask {
       const fade = Math.sin(progress * Math.PI) * this.facePresence;
       const pop = 0.72 + Math.sin(Math.min(1, 1 - progress) * Math.PI) * 0.36;
       context.globalAlpha = fade;
-      context.shadowColor = particle.expressive ? "rgba(255,255,255,.48)" : "rgba(255,255,255,.2)";
-      context.shadowBlur = particle.expressive ? 12 : 6;
+      context.shadowColor = "rgba(255,255,255,.48)";
+      context.shadowBlur = 12;
       p.push();
       p.translate(particle.x, particle.y);
       p.rotate(particle.rotation);

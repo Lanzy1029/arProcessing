@@ -316,62 +316,24 @@ body.demo-mode .ambient {
 .effect-sheet {
   position: fixed;
   z-index: 10;
-  left: max(10px, env(safe-area-inset-left));
-  right: max(10px, env(safe-area-inset-right));
-  bottom: max(10px, env(safe-area-inset-bottom));
-  padding: 7px 12px 10px;
-  border-radius: 28px;
-}
-
-.sheet-handle {
-  width: 34px;
-  height: 5px;
-  margin: 0 auto 6px;
-  border-radius: 999px;
-  background: rgba(60, 60, 67, 0.22);
-}
-
-.sheet-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 3px 7px;
-}
-
-.sheet-title small,
-.sheet-title h2 {
-  display: block;
-  margin: 0;
-}
-
-.sheet-title small {
-  color: rgba(60, 60, 67, 0.58);
-  font-size: 9px;
-  font-weight: 650;
-}
-
-.sheet-title h2 {
-  margin-top: 1px;
-  font-size: 16px;
-  letter-spacing: -0.035em;
-}
-
-.live-badge {
-  padding: 5px 9px;
-  border-radius: 999px;
-  color: #1d7d35;
-  background: rgba(52, 199, 89, 0.14);
-  font-size: 9px;
-  font-weight: 700;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  padding: 5px 10px;
+  border-radius: 22px;
 }
 
 .gesture-row {
   display: grid;
-  grid-template-columns: minmax(95px, 0.9fr) minmax(190px, 1.55fr);
+  grid-template-columns: minmax(96px, 0.9fr) minmax(174px, 1.45fr);
   align-items: center;
-  gap: 8px;
-  padding: 8px 3px;
-  border-top: 0.5px solid rgba(60, 60, 67, 0.18);
+  gap: 7px;
+  min-height: 50px;
+  padding: 5px 2px;
+}
+
+.gesture-row + .gesture-row {
+  border-top: 0.5px solid rgba(60, 60, 67, 0.16);
 }
 
 .gesture-copy {
@@ -383,14 +345,14 @@ body.demo-mode .ambient {
 
 .gesture-face {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 11px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.78);
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.07);
-  font-size: 22px;
+  font-size: 19px;
 }
 
 .gesture-copy strong,
@@ -399,12 +361,12 @@ body.demo-mode .ambient {
 }
 
 .gesture-copy strong {
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: -0.02em;
 }
 
 .gesture-copy small {
-  margin-top: 2px;
+  margin-top: 1px;
   overflow: hidden;
   color: rgba(60, 60, 67, 0.58);
   font-size: 9px;
@@ -415,35 +377,28 @@ body.demo-mode .ambient {
 .effect-options {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 7px;
 }
 
 .effect-option {
   min-width: 0;
-  min-height: 48px;
-  padding: 4px 2px 3px;
+  height: 38px;
+  padding: 0;
   border: 1px solid transparent;
-  border-radius: 13px;
+  border-radius: 12px;
   color: rgba(28, 28, 30, 0.72);
   background: rgba(118, 118, 128, 0.08);
   cursor: pointer;
   transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
 }
 
-.effect-option span,
-.effect-option small {
+.effect-option span {
   display: block;
 }
 
 .effect-option span {
-  font-size: 20px;
-  line-height: 1.1;
-}
-
-.effect-option small {
-  margin-top: 2px;
-  font-size: 8px;
-  font-weight: 650;
+  font-size: 19px;
+  line-height: 36px;
 }
 
 .effect-option[aria-pressed="true"] {
@@ -455,13 +410,6 @@ body.demo-mode .ambient {
 
 .effect-option:active {
   transform: scale(0.95);
-}
-
-.privacy-note {
-  margin: 5px 0 0;
-  color: rgba(60, 60, 67, 0.48);
-  font-size: 8px;
-  text-align: center;
 }
 
 .debug-panel {
@@ -507,16 +455,14 @@ body.demo-mode .ambient {
   }
 
   .effect-sheet {
-    top: max(8px, env(safe-area-inset-top));
     left: auto;
     right: max(8px, env(safe-area-inset-right));
     bottom: max(8px, env(safe-area-inset-bottom));
     width: 330px;
-    overflow: auto;
   }
 
   .gesture-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: 96px 1fr;
   }
 }
 
@@ -533,9 +479,6 @@ body.demo-mode .ambient {
     display: none;
   }
 
-  .effect-option small {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
