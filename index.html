@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#07070b" />
+    <meta name="description" content="在 iPhone Safari 中体验完全本地运行的 p5.js 粒子面具。" />
+    <meta property="og:title" content="Particle Veil · 粒子面具 AR" />
+    <meta property="og:description" content="打开摄像头，让流动粒子跟随你的表情。无需安装，画面不会上传。" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://lanzy1029.github.io/arProcessing/" />
+    <meta property="og:image" content="https://lanzy1029.github.io/arProcessing/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://lanzy1029.github.io/arProcessing/og.png" />
+    <link rel="canonical" href="https://lanzy1029.github.io/arProcessing/" />
+    <link rel="icon" href="data:," />
+    <title>Particle Veil · 粒子面具 AR</title>
+  </head>
+  <body>
+    <main id="app" aria-label="粒子面具 AR 体验">
+      <video id="camera" autoplay muted playsinline aria-hidden="true"></video>
+      <div class="ambient" aria-hidden="true"></div>
+      <div id="canvas-host" aria-hidden="true"></div>
+
+      <header class="brand" aria-label="Particle Veil">
+        <span class="brand-mark"></span>
+        <span>PARTICLE VEIL</span>
+        <span class="brand-index">AR / 001</span>
+      </header>
+
+      <section id="landing" class="landing">
+        <p class="eyebrow">P5.JS × ON-DEVICE VISION</p>
+        <h1 id="headline">让粒子<br />贴上你的脸</h1>
+        <p id="description" class="description">
+          张嘴唤醒粒子喷发，眨眼触发光脉冲。<br />所有识别只发生在你的手机里。
+        </p>
+        <button id="start-button" class="start-button" type="button" disabled>
+          <span id="button-label">正在准备…</span>
+          <span class="button-arrow" aria-hidden="true">↗</span>
+        </button>
+        <div class="privacy-note">
+          <span class="privacy-dot" aria-hidden="true"></span>
+          不录制 · 不上传 · 不需要登录
+        </div>
+      </section>
+
+      <div id="status-pill" class="status-pill" role="status" aria-live="polite">
+        <span class="status-signal" aria-hidden="true"></span>
+        <span id="status-text">正在加载本地人脸模型</span>
+      </div>
+
+      <div id="face-guide" class="face-guide" aria-hidden="true">
+        <div class="guide-oval"></div>
+        <p>将脸移入轮廓内</p>
+      </div>
+
+      <aside id="debug-panel" class="debug-panel" aria-label="诊断数据" hidden>
+        <div class="debug-title">LOCAL VISION / DEBUG</div>
+        <pre id="debug-output">等待运行…</pre>
+      </aside>
+
+      <footer class="gesture-hint" aria-hidden="true">
+        <span>眨眼</span><span>张嘴</span><span>转头</span>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

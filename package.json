@@ -1,0 +1,20 @@
+{
+  "name": "ar-processing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A private-on-device p5.js particle face mask for iPhone Safari.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "test": "node --test",
+    "build": "vite build && node scripts/verify-build.mjs",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.35",
+    "p5": "2.3.1"
+  },
+  "devDependencies": {
+    "vite": "8.1.0"
+  }
+}
